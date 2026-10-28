@@ -18,3 +18,9 @@ test('inherit omits schema, disabled clears it, path selects it', () => {
   assert.deepEqual(wireSettings(parseSettings({...defaults, schemaMode:'disabled'})), {schemaSnapshot:null});
   assert.deepEqual(wireSettings(parseSettings({...defaults, schemaMode:'path', schemaPath:'/snapshot'})), {schemaSnapshot:'/snapshot'});
 });
+test('serializes explicit metadata and the optional native settings', () => {
+  const settings = parseSettings({...defaults, parserWorker:'/worker', runtimePrefix:'/runtime', workerManifest:'/manifest.json', workerTimeout:7, profile:'profile', scriptMode:'sql', configPath:'/config.json'});
+  assert.deepEqual(wireSettings(settings), {parserWorker:'/worker', runtimePrefix:'/runtime', workerManifest:'/manifest.json', workerTimeout:7, profile:'profile', scriptMode:'sql', configPath:'/config.json'});
+  assert.throws(() => parseSettings({...defaults, workerManifest:'/manifest.json'}));
+  assert.throws(() => parseSettings({...defaults, workerTimeout:0}));
+});

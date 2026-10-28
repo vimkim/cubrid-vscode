@@ -73,8 +73,8 @@ class Session {
         this.state = {kind:'running', client, settings};
       } catch (error) {
         this.state = {kind:'failed'};
-        this.fallback = this.registerReloadFallback();
         await client.stop().catch(() => undefined);
+        this.fallback = this.registerReloadFallback();
         throw new Error(`Cannot start language server ${settings.server}: ${error instanceof Error ? error.message : String(error)}`);
       }
     });
