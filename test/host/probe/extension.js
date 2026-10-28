@@ -60,6 +60,25 @@ async function run() {
   await vscode.window.showTextDocument(csql);
   if (process.env.CUBRID_BASELINE === '1') { assert.equal(csql.languageId, 'plaintext'); assert.equal(sql.languageId, 'sql'); return; }
   assert.equal(csql.languageId, 'cubrid'); assert.equal(sql.languageId, 'sql');
+  if (process.env.CUBRID_CASE === 'startup') {
+    const marker = path.join(root, 'unresponsive-started');
+    await waitFor(() => fs.existsSync(marker), 'unresponsive server startup');
+    const oldPid = Number(fs.readFileSync(marker, 'utf8'));
+    const started = Date.now();
+    await set('serverPath', process.env.CUBRID_REAL_SERVER);
+    let settled = false;
+    const restart = vscode.commands.executeCommand('cubrid.restart').then(() => { settled = true; });
+    await Promise.race([restart, sleep(10000)]);
+    result.checks.restartSettled = settled;
+    result.checks.elapsedMs = Date.now() - started;
+    result.checks.oldProcessGone = !fs.existsSync(`/proc/${oldPid}`);
+    assert.equal(settled, true, 'restart did not settle within 10 seconds');
+    assert.equal(result.checks.oldProcessGone, true, 'unresponsive server still alive');
+    const item = await completions(csql, 1, 3, 'SELECT');
+    result.checks.completion = {label:item.label, detail:item.detail};
+    result.checks.diagnostics = await diagnostics(csql, ['CUBRID-T1001']);
+    return;
+  }
   if (process.env.CUBRID_CASE === 'untrusted') {
     assert.equal(vscode.workspace.isTrusted, false);
     await sleep(2000);

@@ -16,7 +16,7 @@ for executable in "$CUBRID_HOST" "$CUBRID_CHROMIUM" "$CUBRID_SERVER" "$CUBRID_WO
 done
 [[ -d "$CUBRID_RUNTIME" && -d "$CUBRID_PLAYWRIGHT" ]] || { echo 'Runtime or Playwright directory is missing' >&2; exit 1; }
 [[ -f "$repo/cubrid-language-0.1.0.vsix" ]] || { echo 'Build the VSIX first with npm run package' >&2; exit 1; }
-case "${CUBRID_CASE:-full}" in full|missing|untrusted|roots|roots2|workers|crash|untitled|invalid) ;; *) echo 'Unknown CUBRID_CASE' >&2; exit 1 ;; esac
+case "${CUBRID_CASE:-full}" in full|missing|untrusted|roots|roots2|workers|crash|untitled|invalid|startup) ;; *) echo 'Unknown CUBRID_CASE' >&2; exit 1 ;; esac
 if [[ -e "$CUBRID_PROBE_DIR" ]]; then echo 'Probe directory already exists' >&2; exit 1; fi
 mkdir -p "$CUBRID_PROBE_DIR"/{workspace,extensions,user-data,server-data,home,tmp}
 root=$CUBRID_PROBE_DIR
@@ -32,6 +32,7 @@ unset DISPLAY WAYLAND_DISPLAY
 if [[ "${CUBRID_BASELINE:-0}" != 1 ]]; then
   "$CUBRID_HOST" --install-extension "$repo/cubrid-language-0.1.0.vsix" --extensions-dir "$root/extensions" --server-data-dir "$root/server-data" --user-data-dir "$root/user-data" --accept-server-license-terms >"$root/install.log" 2>&1
 fi
+: > "$root/server.log"
 setsid "$CUBRID_HOST" --host 127.0.0.1 --port 0 --without-connection-token --accept-server-license-terms --telemetry-level off --server-data-dir "$root/server-data" --user-data-dir "$root/user-data" --extensions-dir "$root/extensions" --default-folder "$root/workspace" >"$root/server.log" 2>&1 &
 pid=$!
 cleanup() { kill -- -"$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; }
