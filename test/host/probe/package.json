@@ -1,0 +1,1 @@
+{"name": "acceptance-probe", "publisher": "local-test", "version": "0.0.1", "engines": {"vscode": "^1.109.0"}, "main": "./extension.js", "activationEvents": ["onStartupFinished"], "capabilities": {"untrustedWorkspaces": {"supported": true}}}
