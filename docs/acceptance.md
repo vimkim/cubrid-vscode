@@ -48,3 +48,33 @@ For the direct server, set `CUBRID_SERVER` to the fixed server executable. Set `
 ## Package inventory and audit
 
 The VSIX contains the language configuration, TextMate grammar, compiled extension, English and Korean instructions, Apache-2.0 license, and the production dependencies `vscode-languageclient`, `vscode-jsonrpc`, `vscode-languageserver-protocol`, `vscode-languageserver-types`, `semver`, and `balanced-match`. Run `npx vsce ls --tree` to inspect the inventory. `npm audit --omit=dev` reports no vulnerabilities. The build-only `@vscode/vsce` dependency pulls Azure authentication and `uuid` 8.3.2. The remaining moderate advisory concerns a buffer argument to UUID generation. The local VSIX build does not use Azure login, and those packages do not ship in the VSIX.
+
+## Startup retirement repair
+
+The repair is based on `805416ea248e495ab5fd04e0adf0d139e9280fa3`. The source file `src/extension.ts` has SHA-256 `70fb19847925673ef0657b91ceae4d03640001292ed9113ae308c1cb8b8c4045`. The installed VSIX is `/home/vimkim/temp/cubrid-editor-alpha-aiYISe/vscode-retirement/cubrid-language-0.1.0.vsix` and has SHA-256 `621a757ddce1c33b7e9c624d312e66e4faddf21cbca11969720154f358b5f39b`. The artifact was built after the README and source changes. The fixed server, native worker, and runtime were the read-only inputs named above.
+
+The pre-fix real-host result is `/home/vimkim/temp/cubrid-editor-alpha-aiYISe/vscode-startup/red2/result.json`. Restart did not settle in 10 seconds and the original child remained alive. The passing receipt is `/home/vimkim/temp/cubrid-editor-alpha-aiYISe/vscode-retirement/accepted-startup/result.json`. Restart settled, the original child had exited before the successor launched, and the successor supplied `SELECT` completion and `CUBRID-T1001` diagnostics.
+
+The SDK probe is `/home/vimkim/temp/cubrid-editor-alpha-aiYISe/vscode-retirement/sdk4/result.json`. Its source is in the adjacent `sdk-scratch` directory. It exercised the pinned `vscode-languageclient` 9.0.1 in the real extension host with a hanging initializer, an inherited-open-pipe response, and an initializer that registered features before retirement. After child exit, closed streams, and start settlement, completion, execute-command, did-open, did-change, and did-close feature states had no registrations. The old command was absent. Each healthy successor registered those features, returned its own completion and command result, and received document synchronization. In the late case the old command and all five feature registrations were active before retirement.
+
+Public `dispose()` rejected with `startFailed` in the hanging and inherited-pipe cases. It rejected with a destroyed-stream write in the late case. These are classified only after the retirement postconditions. The pinned SDK's connection-close path clears features, listeners, and diagnostics before entering its failed or stopped state. Other disposal errors fail closed. The probe does not establish forced descendant cleanup.
+
+The final artifact passed these isolated installed-host cases under `/home/vimkim/temp/cubrid-editor-alpha-aiYISe/vscode-retirement`:
+
+- `accepted-startup` and `accepted-startup-auto` cover corrected path with and without Restart. `accepted-startup-rapid` covers invalid-setting retention, rapid valid changes, repeated Restart, the latest native pair and profile, and native diagnostics.
+- `accepted-startup-timeout` covers the 10-second startup deadline, actionable output, and no retry loop. `accepted-startup-timeout-race` corrects the path while a TERM-resistant child is still being retired. `deterministic-startup-timeout-race` repeats it after observing the TERM signal. `accepted-startup-term`, `accepted-startup-late`, and `accepted-startup-dispose` cover escalation, a late initialize response, and disposal during startup.
+- The recovery launcher records the old PID's absence at successor launch and exactly one successor. `process-check.json` records the observed startup PIDs absent after the tests. This does not prove cleanup of arbitrary descendants after forced termination.
+- `accepted-full`, `accepted-trace`, `accepted-roots2`, `accepted-untrusted`, `accepted-missing`, `accepted-invalid`, `accepted-crash`, `accepted-workers`, and `accepted-untitled` cover the existing installed alpha, wire, roots, trust, error, crash, worker cleanup, and document cases. The `wire-summary.json` files record the passing wire checks. The live-worker case observed the worker alive before normal Restart and absent afterwards.
+
+Run `npm ci`, `npm test`, `npm audit --omit=dev`, and `npm run package` for the build and checks. The unit suite passed four tests and the production audit reported zero vulnerabilities. For the installed recovery cases, use the host, Playwright, Chromium, worker, and runtime exports in the reproduction section above, then run each case in a new output directory:
+
+```sh
+export CUBRID_REAL_SERVER=/home/vimkim/temp/cubrid-lsp-enums-venv/bin/cubrid-language-server
+export CUBRID_SERVER="$PWD/test/host/unresponsive-server.py"
+export CUBRID_RECOVERY_SERVER="$PWD/test/host/recovery-server.py"
+export CUBRID_PROBE_DIR=/home/vimkim/temp/cubrid-editor-alpha-aiYISe/vscode-retirement/new-startup
+export CUBRID_CASE=startup
+test/host/run.sh
+```
+
+Use `startup-auto`, `startup-rapid`, `startup-timeout`, `startup-timeout-race`, `startup-term`, `startup-late`, or `startup-dispose` for the other cases. Each needs a fresh `CUBRID_PROBE_DIR`. For the full alpha cases use the fixed server directly, or `test/host/trace-server.py` with `CUBRID_REAL_SERVER` for wire capture. Run `python3 test/host/check-wire.py "$CUBRID_PROBE_DIR"` for the full trace and add `--roots` for the two-root trace. The tests used OpenVSCode Server 1.109.5, Node v22.21.1 in its extension host, and headless Chromium 151.0.7922.34. Microsoft VS Code desktop and version 1.109.0 remain untested.

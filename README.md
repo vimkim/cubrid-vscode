@@ -6,7 +6,7 @@ English instructions are in README.en.md.
 
 ## 설치
 
-Python 3.10 이상과 CUBRID 언어 서버의 LSP 의존성을 설치하세요. 서버 설치 방법은 언어 도구 저장소의 `docs/lsp.md`를 참조하세요. 이 저장소에서 다음 명령으로 VSIX를 만듭니다.
+Python 3.10 이상과 CUBRID 언어 서버의 LSP 의존성을 소스 체크아웃 또는 wheel에서 설치하세요. [공유 언어 서버 설치 안내](https://github.com/vimkim/cubrid-language-tools/blob/main/docs/lsp.md)를 참조하세요. 이 확장은 initialize 호환성 수정이 필요하며 기존 공유 엔진 기준 버전에는 해당 수정이 없습니다. 이 저장소에서 다음 명령으로 VSIX를 만듭니다.
 
 ```sh
 npm ci
@@ -21,6 +21,6 @@ VS Code의 **Extensions: Install from VSIX** 명령으로 생성된 VSIX를 설�
 
 ## 스키마와 명령
 
-`cubrid.schemaMode`는 `inherit`, `disabled`, `path` 중 하나입니다. `path`를 선택하면 `cubrid.schemaPath`에 절대 경로를 지정하세요. `CUBRID: Reload Schema`는 열린 문서별 상태를 표시합니다. 갱신에 실패하면 마지막 유효 메타데이터가 stale로 표시될 수 있습니다. `CUBRID: Restart Language Server`는 서버 시작 실패 후 다시 시도합니다.
+`cubrid.schemaMode`는 `inherit`, `disabled`, `path` 중 하나입니다. `path`를 선택하면 `cubrid.schemaPath`에 절대 경로를 지정하세요. `CUBRID: Reload Schema`는 열린 문서별 상태를 표시합니다. 갱신에 실패하면 마지막 유효 메타데이터가 stale로 표시될 수 있습니다. `CUBRID: Restart Language Server`는 서버 시작 실패 후 다시 시도합니다. 초기화는 10초 후 시간 초과됩니다. 서버 경로를 수정하면 기존 프로세스가 종료된 뒤 새 서버를 시작합니다.
 
 빈 진단 목록이 모든 SQL의 지원을 보증하지는 않습니다. 네이티브 런타임이 없으면 진단에 실패가 표시되지만 키워드 자동 완성은 계속 사용할 수 있습니다.

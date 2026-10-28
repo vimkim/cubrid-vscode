@@ -4,7 +4,7 @@ This extension provides lexical highlighting, indentation, completion, and synta
 
 ## Install
 
-Install Python 3.10 or later and the language server's LSP dependencies. See `docs/lsp.en.md` in the language tools repository. Build a VSIX here:
+Install Python 3.10 or later and the language server's LSP dependencies from a checkout or wheel. Follow the [shared language server installation guide](https://github.com/vimkim/cubrid-language-tools/blob/main/docs/lsp.en.md#install-and-start). This extension requires the initialize compatibility fix; the original shared-engine baseline does not contain it. Build a VSIX here:
 
 ```sh
 npm ci
@@ -19,6 +19,6 @@ Generic `.sql` files keep their existing language. To opt in, add `"files.associ
 
 ## Schema and commands
 
-Set `cubrid.schemaMode` to `inherit`, `disabled`, or `path`. In path mode, set the absolute `cubrid.schemaPath`. **CUBRID: Reload Schema** shows a result for each open document. A failed reload can retain the last valid metadata and mark it stale. **CUBRID: Restart Language Server** retries a failed start.
+Set `cubrid.schemaMode` to `inherit`, `disabled`, or `path`. In path mode, set the absolute `cubrid.schemaPath`. **CUBRID: Reload Schema** shows a result for each open document. A failed reload can retain the last valid metadata and mark it stale. **CUBRID: Restart Language Server** retries a failed start. Initialization times out after 10 seconds. Correcting the server path also starts a replacement after the old process exits.
 
 An empty diagnostic list does not certify support for all SQL. When the native runtime is missing, diagnostics report the failure and keyword completion remains available.

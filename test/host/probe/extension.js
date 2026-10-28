@@ -60,23 +60,71 @@ async function run() {
   await vscode.window.showTextDocument(csql);
   if (process.env.CUBRID_BASELINE === '1') { assert.equal(csql.languageId, 'plaintext'); assert.equal(sql.languageId, 'sql'); return; }
   assert.equal(csql.languageId, 'cubrid'); assert.equal(sql.languageId, 'sql');
-  if (process.env.CUBRID_CASE === 'startup') {
+  if ((process.env.CUBRID_CASE || '').startsWith('startup')) {
+    const mode = process.env.CUBRID_CASE;
     const marker = path.join(root, 'unresponsive-started');
     await waitFor(() => fs.existsSync(marker), 'unresponsive server startup');
     const oldPid = Number(fs.readFileSync(marker, 'utf8'));
     const started = Date.now();
-    await set('serverPath', process.env.CUBRID_REAL_SERVER);
-    let settled = false;
-    const restart = vscode.commands.executeCommand('cubrid.restart').then(() => { settled = true; });
-    await Promise.race([restart, sleep(10000)]);
-    result.checks.restartSettled = settled;
+    const recovery = process.env.CUBRID_RECOVERY_SERVER || process.env.CUBRID_REAL_SERVER;
+    if (mode === 'startup-timeout-race') {
+      await waitFor(() => fs.existsSync(path.join(root, 'termination-requested')), 'termination requested');
+      assert.equal(fs.existsSync(`/proc/${oldPid}`), true, 'old server should still be in TERM grace period');
+      await set('serverPath', recovery);
+    } else if (mode === 'startup-timeout') {
+      await waitFor(() => !fs.existsSync(`/proc/${oldPid}`), 'startup deadline');
+      await sleep(1500);
+      assert.equal(children().length, 0, 'startup failure retried automatically');
+      result.checks.timeoutMs = Date.now() - started;
+      await set('serverPath', recovery);
+    } else if (mode === 'startup-dispose') {
+      const installed = fs.readdirSync(path.join(root, 'extensions')).find(name => name.startsWith('cubrid-local.cubrid-language-'));
+      await require(path.join(root, 'extensions', installed, 'out/extension.js')).deactivate();
+      result.checks.oldProcessGone = !fs.existsSync(`/proc/${oldPid}`);
+      assert.equal(result.checks.oldProcessGone, true);
+      return;
+    } else if (mode === 'startup-rapid') {
+      await set('parserWorker', 'relative-worker');
+      await sleep(300);
+      assert.equal(fs.existsSync(`/proc/${oldPid}`), true, 'invalid update retired valid intent');
+      await set('parserWorker', process.env.CUBRID_WORKER);
+      await set('runtimePrefix', process.env.CUBRID_RUNTIME);
+      await set('profile', 'unknown-profile');
+      await set('serverPath', '/bin/false');
+      await set('serverPath', recovery);
+      await Promise.all([vscode.commands.executeCommand('cubrid.restart'), vscode.commands.executeCommand('cubrid.restart')]);
+    } else {
+      await set('serverPath', recovery);
+      if (mode === 'startup') {
+        let settled = false;
+        const restart = vscode.commands.executeCommand('cubrid.restart').then(() => { settled = true; });
+        await Promise.race([restart, sleep(10000)]);
+        result.checks.restartSettled = settled;
+        assert.equal(settled, true, 'restart did not settle within 10 seconds');
+      }
+    }
+    await waitFor(() => !fs.existsSync(`/proc/${oldPid}`), 'old process exit');
     result.checks.elapsedMs = Date.now() - started;
-    result.checks.oldProcessGone = !fs.existsSync(`/proc/${oldPid}`);
-    assert.equal(settled, true, 'restart did not settle within 10 seconds');
-    assert.equal(result.checks.oldProcessGone, true, 'unresponsive server still alive');
+    result.checks.oldProcessGone = true;
     const item = await completions(csql, 1, 3, 'SELECT');
     result.checks.completion = {label:item.label, detail:item.detail};
-    result.checks.diagnostics = await diagnostics(csql, ['CUBRID-T1001']);
+    if (mode === 'startup-rapid') {
+      result.checks.latestSettings = await diagnostics(csql, ['CUBRID-U1001']);
+      await set('profile', '');
+      const native = await document('recovery-native.csql', 'CREATE SERIAL s START WITH ;\n');
+      result.checks.native = await diagnostics(native, ['CUBRID-S1001']);
+    } else {
+      result.checks.diagnostics = await diagnostics(csql, ['CUBRID-T1001']);
+    }
+    if (process.env.CUBRID_RECOVERY_SERVER) {
+      const launches = fs.readFileSync(path.join(root, 'recovery-launches.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
+      assert.equal(launches.length, 1, 'expected a single successor');
+      assert.equal(launches[0].oldAlive, false, 'successor launched before old child exited');
+      result.checks.launches = launches;
+    }
+    const live = processes().filter(entry => entry.parent === process.pid && (entry.command.includes(process.env.CUBRID_SERVER) || entry.command.includes(process.env.CUBRID_REAL_SERVER)));
+    result.checks.children = live;
+    assert.equal(live.length, 1, 'expected one server process');
     return;
   }
   if (process.env.CUBRID_CASE === 'untrusted') {
