@@ -1,0 +1,144 @@
+{
+  "name": "cubrid-language",
+  "displayName": "CUBRID Language",
+  "description": "CUBRID language support using the shared language server",
+  "version": "0.1.0",
+  "publisher": "cubrid-local",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:cubrid",
+    "onCommand:cubrid.restart",
+    "onCommand:cubrid.reloadSchema"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "cubrid",
+        "aliases": [
+          "CUBRID"
+        ],
+        "extensions": [
+          ".csql"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "cubrid",
+        "scopeName": "source.cubrid",
+        "path": "./syntaxes/cubrid.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "cubrid.restart",
+        "title": "CUBRID: Restart Language Server"
+      },
+      {
+        "command": "cubrid.reloadSchema",
+        "title": "CUBRID: Reload Schema"
+      }
+    ],
+    "configuration": {
+      "title": "CUBRID",
+      "properties": {
+        "cubrid.serverPath": {
+          "type": "string",
+          "default": "cubrid-language-server",
+          "scope": "machine",
+          "description": "Absolute language server path, or the default command on PATH."
+        },
+        "cubrid.parserWorker": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Absolute qualified parser worker path."
+        },
+        "cubrid.runtimePrefix": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Absolute matching runtime path."
+        },
+        "cubrid.workerManifest": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Optional absolute worker manifest path."
+        },
+        "cubrid.workerTimeout": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0.001,
+          "maximum": 300,
+          "scope": "machine"
+        },
+        "cubrid.profile": {
+          "type": "string",
+          "default": "",
+          "scope": "machine"
+        },
+        "cubrid.scriptMode": {
+          "type": "string",
+          "enum": [
+            "inherit",
+            "sql",
+            "csql"
+          ],
+          "default": "inherit",
+          "scope": "machine"
+        },
+        "cubrid.configPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Absolute project configuration override."
+        },
+        "cubrid.schemaMode": {
+          "type": "string",
+          "enum": [
+            "inherit",
+            "disabled",
+            "path"
+          ],
+          "default": "inherit",
+          "scope": "machine"
+        },
+        "cubrid.schemaPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Absolute schema snapshot path used in path mode."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "npm run build && node --test test/*.test.js",
+    "package": "npm run build && vsce package"
+  },
+  "dependencies": {
+    "vscode-languageclient": "9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.15",
+    "@types/vscode": "1.109.0",
+    "@vscode/vsce": "3.7.1",
+    "typescript": "5.9.3"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Syntax support is available. The server starts only after the workspace is trusted."
+    }
+  }
+}

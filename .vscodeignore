@@ -1,0 +1,7 @@
+src/**
+test/**
+docs/**
+tsconfig.json
+.gitignore
+AGENTS.md
+**/*.map
