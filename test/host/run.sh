@@ -16,7 +16,7 @@ for executable in "$CUBRID_HOST" "$CUBRID_CHROMIUM" "$CUBRID_SERVER" "$CUBRID_WO
 done
 [[ -d "$CUBRID_RUNTIME" && -d "$CUBRID_PLAYWRIGHT" ]] || { echo 'Runtime or Playwright directory is missing' >&2; exit 1; }
 [[ -f "$repo/cubrid-language-0.1.0.vsix" ]] || { echo 'Build the VSIX first with npm run package' >&2; exit 1; }
-case "${CUBRID_CASE:-full}" in full|missing|untrusted|roots|roots2|workers|crash|untitled|invalid|startup|startup-auto|startup-rapid|startup-timeout|startup-timeout-race|startup-term|startup-late|startup-dispose) ;; *) echo 'Unknown CUBRID_CASE' >&2; exit 1 ;; esac
+case "${CUBRID_CASE:-full}" in full|show-hint|missing|untrusted|roots|roots2|workers|crash|untitled|invalid|startup|startup-auto|startup-rapid|startup-timeout|startup-timeout-race|startup-term|startup-late|startup-dispose) ;; *) echo 'Unknown CUBRID_CASE' >&2; exit 1 ;; esac
 if [[ -e "$CUBRID_PROBE_DIR" ]]; then echo 'Probe directory already exists' >&2; exit 1; fi
 mkdir -p "$CUBRID_PROBE_DIR"/{workspace,extensions,user-data,server-data,home,tmp}
 root=$CUBRID_PROBE_DIR

@@ -58,8 +58,15 @@ async function run() {
   const sql = await document('test.sql', 'select 1;\n');
   result.checks.language = {csql:csql.languageId, sql:sql.languageId};
   await vscode.window.showTextDocument(csql);
-  if (process.env.CUBRID_BASELINE === '1') { assert.equal(csql.languageId, 'plaintext'); assert.equal(sql.languageId, 'sql'); return; }
+  if (process.env.CUBRID_BASELINE === '1' && process.env.CUBRID_CASE !== 'show-hint') { assert.equal(csql.languageId, 'plaintext'); assert.equal(sql.languageId, 'sql'); return; }
   assert.equal(csql.languageId, 'cubrid'); assert.equal(sql.languageId, 'sql');
+  if (process.env.CUBRID_CASE === 'show-hint') {
+    await waitFor(() => vscode.workspace.isTrusted, 'trusted workspace');
+    result.trusted = vscode.workspace.isTrusted;
+    result.checks.showHint = {};
+    await require('./show-hint').run({checks:result.checks.showHint, document, completions, set, waitFor});
+    return;
+  }
   if ((process.env.CUBRID_CASE || '').startsWith('startup')) {
     const mode = process.env.CUBRID_CASE;
     const marker = path.join(root, 'unresponsive-started');

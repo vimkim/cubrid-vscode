@@ -130,3 +130,30 @@ The saved response and installed artifact were replayed against the controller a
 Both Linux x64 desktop jobs passed `portable`, `hanging-replace`, `hanging-term`, and `hanging-timeout`. The CLI and probe identify Microsoft Visual Studio Code 1.109.0 and 1.144.0. The latter was the stable version selected for this run. All eight probe receipts record a trusted workspace, empty native settings, `SELECT` completion, and real `CUBRID-T1001` diagnostics.
 
 The evidence is under `/home/vimkim/temp/cubrid-editor-hardening-c57_w98j/integration-vscode/run-40836324028`. It includes the package provenance, both `desktop/controller.json` files, editor identities, and each case's `probe.json`. The [workflow](https://github.com/vimkim/cubrid-vscode/blob/main/.github/workflows/ci.yml) records the current matrix. This desktop evidence does not qualify native syntax success, untrusted workspaces, or other platforms. No desktop process ran on the development host.
+
+## SHOW and hint host acceptance, 2026-10-29
+
+The focused case uses extension baseline `afd459b7eb9a9a42164f0aa9ed191967c56a6e95` and clean engine commit `49479b2d0a6cf39f71498834215346d8381b82c5`. It runs the packaged extension against an isolated installed wheel in OpenVSCode Server 1.109.5. The [ticket report](tickets/reports/show-hint-host.md) records hashes, original UTF-16 ranges, results, and limitations. The output is `/home/vimkim/temp/cubrid-followup-execution-6_7fcyif/vscode/final/result.json`.
+
+To rebuild the engine in an isolated directory from the specified commit, use a new absolute directory and the clean engine checkout:
+
+```sh
+export EVIDENCE=/absolute/new/evidence-directory
+export ENGINE=/home/vimkim/gh/cubrid-language-tools
+mkdir -p "$EVIDENCE/engine-source"
+git -C "$ENGINE" archive 49479b2d0a6cf39f71498834215346d8381b82c5 | tar -x -C "$EVIDENCE/engine-source"
+python3 -m venv "$EVIDENCE/venv"
+"$EVIDENCE/venv/bin/python" -m pip wheel --wheel-dir "$EVIDENCE/wheels" "$EVIDENCE/engine-source[lsp]"
+"$EVIDENCE/venv/bin/pip" install --no-index --find-links "$EVIDENCE/wheels" 'cubrid-language-tools[lsp]'
+```
+
+Build the VSIX with `npm ci`, `npm test`, and `npm run package`. Set `CUBRID_HOST`, `CUBRID_PLAYWRIGHT`, `CUBRID_CHROMIUM`, `CUBRID_WORKER`, and `CUBRID_RUNTIME` to the prerequisites in the reproduction section above. Point the server at the isolated wheel and select a fresh output path:
+
+```sh
+export CUBRID_SERVER="$EVIDENCE/venv/bin/cubrid-language-server"
+export CUBRID_CASE=show-hint
+export CUBRID_PROBE_DIR="$EVIDENCE/host-run"
+test/host/run.sh
+```
+
+The probe drives the editor's suggestion commands and waits for diagnostic updates. It checks both insertion ranges and saved CRLF text, the four authoring warning codes and positions, warning removal and reappearance, profile suppression, ordinary comment and string exclusions, and native tool and unsupported results. The probe does not certify native syntax coverage. It does not launch desktop Electron or use a personal editor profile.
