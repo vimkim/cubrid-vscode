@@ -4,7 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const {spawnSync} = require('node:child_process');
 const {test} = require('node:test');
-const {supervise} = require('./run.cjs');
+const {supervise, editorIdentity} = require('./run.cjs');
 const {readProbeResult, assertComplete, processes, processAlive} = require('./contract.cjs');
 
 function temporary(t) {
@@ -12,6 +12,28 @@ function temporary(t) {
   t.after(() => fs.rmSync(root, {recursive:true, force:true}));
   return root;
 }
+
+test('stable selection accepts historical release labels and rejects an invalid selected version', async t => {
+  const root = temporary(t);
+  const originalFetch = global.fetch;
+  t.after(() => { global.fetch = originalFetch; });
+  const response = body => ({ok:true, status:200, text:async () => JSON.stringify(body)});
+  global.fetch = async () => response(['1.144.0', '0.10.6-release', '0.10.1-preview']);
+  await assert.rejects(editorIdentity('stable', root), /download exited with 1/);
+  assert.match(fs.readFileSync(path.join(root, 'download.stderr.log'), 'utf8'), /desktop execution requires GitHub-hosted CI/);
+  const input = JSON.parse(fs.readFileSync(path.join(root, 'download-input.json')));
+  assert.equal(input.version, '1.144.0');
+  for (const body of [[], {}, ['invalid', '1.144.0'], [null, '1.144.0']]) {
+    const badRoot = fs.mkdtempSync(path.join(root, 'invalid-'));
+    global.fetch = async () => response(body);
+    await assert.rejects(editorIdentity('stable', badRoot));
+    assert.equal(fs.existsSync(path.join(badRoot, 'download-input.json')), false);
+  }
+  const badRoot = fs.mkdtempSync(path.join(root, 'http-'));
+  global.fetch = async () => ({ok:false, status:503});
+  await assert.rejects(editorIdentity('stable', badRoot), /stable release lookup failed/);
+  assert.equal(fs.existsSync(path.join(badRoot, 'download-input.json')), false);
+});
 
 test('a missing or failed terminal probe receipt cannot pass', t => {
   const root = temporary(t);
@@ -87,7 +109,7 @@ test('the executable-only recorder preserves stdio and process identity across e
   assert.equal(processAlive(recorded[0]), false);
 });
 
-test('installed inventory permits only manifest metadata and rejects changed runtime bytes', t => {
+test('installed inventory authenticates the VSIX manifest and rejects tampering', t => {
   const root = temporary(t);
   const source = path.join(root, 'source');
   fs.mkdirSync(source);
@@ -109,7 +131,8 @@ test('installed inventory permits only manifest metadata and rejects changed run
   }
   const sha = execute('git', ['rev-parse', 'HEAD']).stdout.trim();
   const vsix = path.join(root, 'fixture.vsix');
-  const archive = execute('python3', ['-c', 'import json,sys,zipfile\nwith zipfile.ZipFile(sys.argv[1], "w") as z:\n for name,data in json.loads(sys.argv[2]).items(): z.writestr("extension/"+name,data)', vsix, JSON.stringify(files)]);
+  const vsixManifest = '<PackageManifest>fixture metadata</PackageManifest>';
+  const archive = execute('python3', ['-c', 'import json,sys,zipfile\nwith zipfile.ZipFile(sys.argv[1], "w") as z:\n for name,data in json.loads(sys.argv[2]).items(): z.writestr("extension/"+name,data)\n z.writestr("extension.vsixmanifest",sys.argv[3])', vsix, JSON.stringify(files), vsixManifest]);
   assert.equal(archive.status, 0, archive.stderr);
   const script = path.join(__dirname, 'package.py');
   const created = execute('python3', [script, 'create', '--vsix', vsix], {...process.env, GITHUB_SHA:sha});
@@ -119,11 +142,26 @@ test('installed inventory permits only manifest metadata and rejects changed run
     fs.mkdirSync(path.dirname(path.join(installed, name)), {recursive:true});
     fs.writeFileSync(path.join(installed, name), data);
   }
+  fs.writeFileSync(path.join(installed, '.vsixmanifest'), vsixManifest);
   const manifest = {...JSON.parse(files['package.json']), __metadata:{installedTimestamp:1}};
   fs.writeFileSync(path.join(installed, 'package.json'), JSON.stringify(manifest, null, '\t'));
   const verify = () => execute('python3', [script, 'installed', '--vsix', vsix, '--source-sha', sha, '--installed', installed]);
   let result = verify();
   assert.equal(result.status, 0, result.stderr);
+  fs.rmSync(path.join(installed, '.vsixmanifest'));
+  result = verify();
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /installed inventory differs/);
+  fs.writeFileSync(path.join(installed, '.vsixmanifest'), 'changed');
+  result = verify();
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /installed file mismatch/);
+  fs.writeFileSync(path.join(installed, '.vsixmanifest'), vsixManifest);
+  fs.writeFileSync(path.join(installed, 'unknown'), 'unexpected');
+  result = verify();
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /installed inventory differs/);
+  fs.rmSync(path.join(installed, 'unknown'));
   fs.writeFileSync(path.join(installed, 'out/extension.js'), 'changed');
   result = verify();
   assert.notEqual(result.status, 0);

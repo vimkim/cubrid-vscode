@@ -256,4 +256,4 @@ if (require.main === module) {
   run.catch(error => { process.stderr.write(`${error.stack || error}\n`); process.exitCode = 1; });
 }
 
-module.exports = {supervise};
+module.exports = {supervise, editorIdentity};
