@@ -78,3 +78,39 @@ test/host/run.sh
 ```
 
 Use `startup-auto`, `startup-rapid`, `startup-timeout`, `startup-timeout-race`, `startup-term`, `startup-late`, or `startup-dispose` for the other cases. Each needs a fresh `CUBRID_PROBE_DIR`. For the full alpha cases use the fixed server directly, or `test/host/trace-server.py` with `CUBRID_REAL_SERVER` for wire capture. Run `python3 test/host/check-wire.py "$CUBRID_PROBE_DIR"` for the full trace and add `--roots` for the two-root trace. The tests used OpenVSCode Server 1.109.5, Node v22.21.1 in its extension host, and headless Chromium 151.0.7922.34. Microsoft VS Code desktop and version 1.109.0 remain untested.
+
+## Desktop CI preparation, 2026-10-29
+
+The desktop workflow builds one VSIX and transfers it with a required provenance file to independent Microsoft desktop `1.109.0` and `stable` jobs. This implementation is pending hosted qualification. No Electron or desktop process ran on the development host. The historical alpha package remains unchanged.
+
+The package job uses Node 22, the committed npm lockfile, and the existing build. The controller pins `@vscode/test-electron` to 3.1.0. The product retains `vscode-languageclient` 9.0.1. Each consumer builds core commit `2a8842c45c4fb219e322afd731c27937a107324f` with Python 3.10. `test/desktop/build-requirements.txt` pins pip, setuptools, and wheel. `pip wheel --no-build-isolation` uses those installed build tools.
+
+The provenance file records the clean source and workflow commit, lockfile hash, build tools, VSIX hash, source file hashes, and every packaged runtime file. `vsce` renames `README.md` to `readme.md` and `LICENSE` to `LICENSE.txt`. The checker verifies their bytes against the original files. Installation must preserve the complete file inventory and every runtime hash. For `package.json`, only the installation-added `__metadata` field and JSON formatting can differ. Microsoft's [1.109.0 manifest scanner](https://github.com/microsoft/vscode/blob/1.109.0/src/vs/platform/extensionManagement/common/extensionsScannerService.ts#L283) performs that transformation.
+
+The controller installs the VSIX into a fresh profile for each case. A separate probe calls public editor APIs and commands through the official SDK test entry point. The probe rejects on failure. Missing receipts, missing observations, package mismatches, nonzero SDK exits, surviving recorded server processes, and timeouts fail the run. Download, installation, and desktop calls have supervised subprocess deadlines. Timeout receipts record failure before TERM and KILL cleanup.
+
+Both desktop versions must complete all four cases:
+
+- `portable` checks CSQL registration, opt-in SQL association, real `CUBRID-T1001`, actual suggestion acceptance with Korean text, emoji, and CRLF, schema replacement and recovery, inherited project metadata, and two public restarts.
+- `hanging-replace` replaces a hanging initializer through global settings and public Restart, then checks real completion and missing-runtime diagnostics.
+- `hanging-term` checks the same recovery after the initializer resists TERM.
+- `hanging-timeout` observes startup expiry without an automatic successor, then checks recovery.
+
+The process launcher records PID, Linux process start time, parent PID, executable, and predecessor liveness before `exec`. It takes inputs from the inherited case environment because the product accepts only an executable path. The controller observes process exit after the editor closes. Test cleanup cannot turn a leak into a pass. This evidence covers recorded direct server processes, not arbitrary descendants.
+
+The SDK disables workspace trust for its test launch. The probe requires a trusted workspace, empty native settings, and a real `CUBRID-T1001` diagnostic. These jobs do not qualify untrusted desktop behavior, native syntax success, TextMate screenshots, or other platforms. `stable` requires a fresh Microsoft release-list response and an exact-version download. The CLI and probe must agree on the observed editor version and Microsoft product identity.
+
+Local preparation evidence is under `/home/vimkim/temp/cubrid-editor-hardening-c57_w98j/evidence/vscode-ci`. The initial four control tests failed before implementation. `npm test` now passes 11 tests, including package tamper rejection, missing and failed receipts, a TERM-resistant process group, and executable-only launch recording. Node syntax checks, Python compilation, workflow validation, and the VSIX source comparison are local checks. They are not desktop qualification.
+
+To reproduce package verification from a clean checkout, use an output directory outside the repository:
+
+```sh
+npm ci
+npm test
+npm audit --omit=dev
+npm run package -- --out /absolute/output/cubrid-language.vsix
+python3 test/desktop/package.py create --vsix /absolute/output/cubrid-language.vsix
+python3 test/desktop/package.py verify --vsix /absolute/output/cubrid-language.vsix --source-sha "$(git rev-parse HEAD)"
+```
+
+Run `.github/workflows/ci.yml` only after approved integration. Its desktop command requires a GitHub-hosted Linux runner. Package and desktop artifacts upload on success and failure. They retain workflow identity, package provenance, server build evidence, installation output, editor logs, probe and controller receipts, saved completion bytes, and process observations. The workflow does not publish a Marketplace package or replace a release asset.

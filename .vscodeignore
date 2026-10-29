@@ -5,3 +5,4 @@ tsconfig.json
 .gitignore
 AGENTS.md
 **/*.map
+.github/**

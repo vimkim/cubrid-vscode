@@ -1,0 +1,7 @@
+{
+  "name": "cubrid-desktop-probe",
+  "publisher": "cubrid-tests",
+  "version": "0.0.0",
+  "engines": {"vscode": "^1.109.0"},
+  "extensionKind": ["workspace"]
+}

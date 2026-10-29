@@ -123,7 +123,7 @@
   },
   "scripts": {
     "build": "tsc -p .",
-    "test": "npm run build && node --test test/*.test.js",
+    "test": "npm run build && node --test test/*.test.js test/desktop/*.test.cjs",
     "package": "npm run build && vsce package"
   },
   "dependencies": {
@@ -132,6 +132,7 @@
   "devDependencies": {
     "@types/node": "22.19.15",
     "@types/vscode": "1.109.0",
+    "@vscode/test-electron": "3.1.0",
     "@vscode/vsce": "3.7.1",
     "typescript": "5.9.3"
   },

@@ -1,0 +1,140 @@
+name: Build and qualify desktop package
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+    working-directory: extension
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          path: extension
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.10'
+      - name: Build and test
+        run: |
+          mkdir -p "$RUNNER_TEMP/package"
+          git status --porcelain --untracked-files=all > "$RUNNER_TEMP/package/initial-status.txt"
+          test ! -s "$RUNNER_TEMP/package/initial-status.txt"
+          npm ci 2>&1 | tee "$RUNNER_TEMP/package/npm-ci.log"
+          npm test 2>&1 | tee "$RUNNER_TEMP/package/test.log"
+          npm audit --omit=dev 2>&1 | tee "$RUNNER_TEMP/package/production-audit.log"
+      - name: Package once with required provenance
+        run: |
+          npm run package -- --out "$RUNNER_TEMP/package/cubrid-language.vsix" 2>&1 | tee "$RUNNER_TEMP/package/package.log"
+          python3 test/desktop/package.py create --vsix "$RUNNER_TEMP/package/cubrid-language.vsix" > "$RUNNER_TEMP/package/inventory.json"
+          python3 test/desktop/package.py verify --vsix "$RUNNER_TEMP/package/cubrid-language.vsix" --source-sha "$GITHUB_SHA" > "$RUNNER_TEMP/package/verified.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: vscode-package
+          path: ${{ runner.temp }}/package
+          if-no-files-found: error
+          retention-days: 14
+
+  desktop:
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        editor: ['1.109.0', stable]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          path: extension
+          persist-credentials: false
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: vimkim/cubrid-language-tools
+          ref: 2a8842c45c4fb219e322afd731c27937a107324f
+          path: core
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.10'
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: vscode-package
+          path: ${{ runner.temp }}/package
+      - name: Prepare pinned shared server
+        run: |
+          mkdir -p "$RUNNER_TEMP/core-evidence" "$RUNNER_TEMP/core-wheel"
+          test "$(git -C "$GITHUB_WORKSPACE/core" rev-parse HEAD)" = 2a8842c45c4fb219e322afd731c27937a107324f
+          git -C "$GITHUB_WORKSPACE/core" status --porcelain --untracked-files=all > "$RUNNER_TEMP/core-evidence/initial-status.txt"
+          test ! -s "$RUNNER_TEMP/core-evidence/initial-status.txt"
+          npm ci 2>&1 | tee "$RUNNER_TEMP/core-evidence/npm-ci.log"
+          python3 -m venv "$RUNNER_TEMP/core-env"
+          "$RUNNER_TEMP/core-env/bin/python" -m pip install --disable-pip-version-check -r test/desktop/build-requirements.txt 2>&1 | tee "$RUNNER_TEMP/core-evidence/build-tools.log"
+          "$RUNNER_TEMP/core-env/bin/python" -m pip wheel --no-deps --no-build-isolation --wheel-dir "$RUNNER_TEMP/core-wheel" "$GITHUB_WORKSPACE/core" 2>&1 | tee "$RUNNER_TEMP/core-evidence/wheel.log"
+          core_wheels=("$RUNNER_TEMP"/core-wheel/*.whl)
+          test "${#core_wheels[@]}" = 1
+          "$RUNNER_TEMP/core-env/bin/python" -m pip install "${core_wheels[0]}[lsp]" 2>&1 | tee "$RUNNER_TEMP/core-evidence/install.log"
+          "$RUNNER_TEMP/core-env/bin/python" -m pip freeze > "$RUNNER_TEMP/core-evidence/pip-freeze.txt"
+          "$RUNNER_TEMP/core-env/bin/python" - <<'PY'
+          import hashlib, importlib.metadata, json, os, platform, subprocess
+          from pathlib import Path
+          import cubrid_language
+          root = Path(os.environ['RUNNER_TEMP'])
+          wheel, = (root / 'core-wheel').glob('*.whl')
+          receipt = {
+              'sourceCommit': subprocess.check_output(['git', '-C', str(Path(os.environ['GITHUB_WORKSPACE']) / 'core'), 'rev-parse', 'HEAD'], text=True).strip(),
+              'python': platform.python_version(),
+              'buildTools': {name: importlib.metadata.version(name) for name in ['pip', 'setuptools', 'wheel']},
+              'serverPath': str(root / 'core-env/bin/cubrid-language-server'),
+              'importPath': cubrid_language.__file__,
+              'wheelSha256': hashlib.sha256(wheel.read_bytes()).hexdigest(),
+              'workflowSha': os.environ['GITHUB_SHA'],
+              'workflowUrl': f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+              'node': subprocess.check_output(['node', '--version'], text=True).strip(),
+              'runner': {key: os.environ.get(key) for key in ['RUNNER_OS', 'ImageOS', 'ImageVersion']},
+          }
+          (root / 'core-evidence/core.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
+      - name: Prepare hosted display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libasound2t64 libgbm1 libnss3 libgtk-3-0t64
+      - name: Qualify installed VSIX on Microsoft desktop
+        env:
+          EDITOR_VERSION: ${{ matrix.editor }}
+        run: |
+          xvfb-run -a node test/desktop/run.cjs --editor "$EDITOR_VERSION" --vsix "$RUNNER_TEMP/package/cubrid-language.vsix" --server "$RUNNER_TEMP/core-env/bin/cubrid-language-server" --core-receipt "$RUNNER_TEMP/core-evidence/core.json" --out "$RUNNER_TEMP/desktop"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: desktop-${{ matrix.editor }}
+          path: |
+            ${{ runner.temp }}/desktop
+            !${{ runner.temp }}/desktop/editor-cache/**
+            ${{ runner.temp }}/core-evidence
+            ${{ runner.temp }}/core-wheel
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
