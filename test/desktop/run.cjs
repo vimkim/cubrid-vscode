@@ -115,7 +115,7 @@ async function editorIdentity(requested, root) {
     fs.writeFileSync(path.join(root, 'stable-releases.json'), body);
     const releases = JSON.parse(body);
     assert.ok(Array.isArray(releases) && releases.length > 0, 'empty stable release list');
-    assert.ok(releases.every(value => typeof value === 'string' && /^\d+\.\d+\.\d+$/.test(value)), 'invalid stable release list');
+    assert.ok(typeof releases[0] === 'string' && /^\d+\.\d+\.\d+$/.test(releases[0]), 'invalid selected stable release');
     version = releases[0];
     writeJson(path.join(root, 'stable-lookup.json'), {url, retrievedAt:new Date().toISOString(), resolvedVersion:version, sha256:createHash('sha256').update(body).digest('hex')});
   }

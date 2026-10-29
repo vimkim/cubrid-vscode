@@ -23,12 +23,16 @@ test('stable selection accepts historical release labels and rejects an invalid 
   assert.match(fs.readFileSync(path.join(root, 'download.stderr.log'), 'utf8'), /desktop execution requires GitHub-hosted CI/);
   const input = JSON.parse(fs.readFileSync(path.join(root, 'download-input.json')));
   assert.equal(input.version, '1.144.0');
-  for (const body of [[], {}, ['invalid', '1.144.0'], [null, '1.144.0']]) {
+  for (const body of [[], {}, ['invalid', '1.144.0'], ['1.144.0-preview', '1.143.0'], [null, '1.144.0']]) {
     const badRoot = fs.mkdtempSync(path.join(root, 'invalid-'));
     global.fetch = async () => response(body);
     await assert.rejects(editorIdentity('stable', badRoot));
     assert.equal(fs.existsSync(path.join(badRoot, 'download-input.json')), false);
   }
+  const malformedRoot = fs.mkdtempSync(path.join(root, 'malformed-'));
+  global.fetch = async () => ({ok:true, text:async () => '{'});
+  await assert.rejects(editorIdentity('stable', malformedRoot), SyntaxError);
+  assert.equal(fs.existsSync(path.join(malformedRoot, 'download-input.json')), false);
   const badRoot = fs.mkdtempSync(path.join(root, 'http-'));
   global.fetch = async () => ({ok:false, status:503});
   await assert.rejects(editorIdentity('stable', badRoot), /stable release lookup failed/);
@@ -162,6 +166,11 @@ test('installed inventory authenticates the VSIX manifest and rejects tampering'
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /installed inventory differs/);
   fs.rmSync(path.join(installed, 'unknown'));
+  fs.symlinkSync('out/extension.js', path.join(installed, 'link'));
+  result = verify();
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /symlink/);
+  fs.rmSync(path.join(installed, 'link'));
   fs.writeFileSync(path.join(installed, 'out/extension.js'), 'changed');
   result = verify();
   assert.notEqual(result.status, 0);

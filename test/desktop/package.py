@@ -102,6 +102,10 @@ def main():
                 raise ValueError('--installed is required')
             installed = args.installed.resolve(strict=True)
             expected = {member['path']: member for member in provenance['members']}
+            if '.vsixmanifest' in expected:
+                raise ValueError('unexpected packaged .vsixmanifest')
+            with zipfile.ZipFile(args.vsix) as archive:
+                expected['.vsixmanifest'] = {'sha256': digest(archive.read('extension.vsixmanifest'))}
             if any(file.is_symlink() for file in installed.rglob('*')):
                 raise ValueError('installed runtime contains a symlink')
             actual = {file.relative_to(installed).as_posix() for file in installed.rglob('*') if file.is_file()}
