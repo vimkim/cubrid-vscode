@@ -10,7 +10,11 @@ English instructions are in README.en.md.
 2. 편집기에서 **Extensions: Install from VSIX** 명령을 실행하고 다운로드한 파일을 선택하세요.
 3. Python 3.10 이상과 선택적 `lsp` 의존성을 포함한 공유 언어 서버를 설치하세요. [공유 엔진 설치 안내](https://github.com/vimkim/cubrid-language-tools/blob/main/docs/install.md)를 참고하세요.
 
-이 확장은 VS Code 1.109.0 이상을 요구합니다. Linux의 OpenVSCode Server 1.109.5에서 테스트했습니다. Microsoft VS Code 데스크톱은 아직 검증하지 않았습니다. 서버와 네이티브 런타임은 별도로 설치하며 확장에 포함되지 않습니다.
+이 확장은 VS Code 1.109.0 이상을 요구합니다. 다운로드할 알파 VSIX는 Linux의 OpenVSCode Server 1.109.5에서 테스트했습니다.
+
+CI 소스 빌드는 Linux의 Microsoft VS Code 데스크톱 1.109.0과 stable에서 검증했습니다. 2026-10-29 실행에서 stable 버전은 1.144.0이었습니다. 이 검증은 네이티브 워커와 런타임을 설정하지 않은 신뢰하는 작업 영역에서 수행했습니다. [성공한 실행](https://github.com/vimkim/cubrid-vscode/actions/runs/40836324028)과 [데스크톱 CI 워크플로](https://github.com/vimkim/cubrid-vscode/blob/main/.github/workflows/ci.yml)를 참고하세요.
+
+서버와 네이티브 런타임은 별도로 설치하며 확장에 포함되지 않습니다.
 
 기본 서버 명령은 편집기 호스트의 PATH에 있는 `cubrid-language-server`입니다. 서버가 PATH에 없다면 사용자 또는 원격 컴퓨터 설정에서 `cubrid.serverPath`에 절대 경로를 지정하세요. 엄격한 구문 진단을 사용하려면 검증된 워커와 일치하는 런타임의 절대 경로를 `cubrid.parserWorker`와 `cubrid.runtimePrefix`에 함께 지정하세요. 아래 예시의 경로를 실제 설치 경로로 바꾸세요. 체크아웃의 `.venv`에 서버를 설치했다면 `.venv/bin/cubrid-language-server`의 절대 경로를 사용하세요.
 

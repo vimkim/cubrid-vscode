@@ -8,7 +8,11 @@ This extension provides lexical highlighting, indentation, completion, and synta
 2. In the editor, run **Extensions: Install from VSIX** and select the downloaded file.
 3. Install Python 3.10 or later and the shared language server with its optional `lsp` dependencies. Follow the [shared engine installation guide](https://github.com/vimkim/cubrid-language-tools/blob/main/docs/install.en.md).
 
-The extension requires VS Code 1.109.0 or later. OpenVSCode Server 1.109.5 on Linux has been tested. Microsoft VS Code desktop has not yet been verified. The server and native runtime are installed separately; the extension does not bundle them.
+The extension requires VS Code 1.109.0 or later. The downloadable alpha VSIX was tested on OpenVSCode Server 1.109.5 on Linux.
+
+CI source builds passed on Microsoft VS Code desktop 1.109.0 and stable on Linux. In the 2026-10-29 run, stable resolved to 1.144.0. These checks use trusted workspaces without native worker or runtime configuration. See the [successful run](https://github.com/vimkim/cubrid-vscode/actions/runs/40836324028) and [desktop CI workflow](https://github.com/vimkim/cubrid-vscode/blob/main/.github/workflows/ci.yml).
+
+The server and native runtime are installed separately. The extension does not bundle them.
 
 The default server command is `cubrid-language-server` on the editor host's PATH. If it is not on PATH, set `cubrid.serverPath` to its absolute path in user or remote machine settings. For strict syntax diagnostics, also set both `cubrid.parserWorker` and `cubrid.runtimePrefix` to the absolute paths of a qualified worker and its matching runtime. Replace the placeholders below with your installation paths. For a server installed in a checkout's `.venv`, use the absolute path to `.venv/bin/cubrid-language-server`.
 
