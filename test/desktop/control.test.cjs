@@ -17,6 +17,12 @@ test('stable selection accepts historical release labels and rejects an invalid 
   const root = temporary(t);
   const originalFetch = global.fetch;
   t.after(() => { global.fetch = originalFetch; });
+  const originalGithubActions = process.env.GITHUB_ACTIONS;
+  t.after(() => {
+    if (originalGithubActions === undefined) delete process.env.GITHUB_ACTIONS;
+    else process.env.GITHUB_ACTIONS = originalGithubActions;
+  });
+  process.env.GITHUB_ACTIONS = 'false';
   const response = body => ({ok:true, status:200, text:async () => JSON.stringify(body)});
   global.fetch = async () => response(['1.144.0', '0.10.6-release', '0.10.1-preview']);
   await assert.rejects(editorIdentity('stable', root), /download exited with 1/);
