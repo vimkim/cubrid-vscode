@@ -1,0 +1,70 @@
+const vscode = require('vscode');
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const guide = 'https://github.com/vimkim/cubrid-language-tools/blob/main/docs/install.en.md';
+exports.run = async ({checks, csql, document, completions, diagnostics, set, waitFor, children}) => {
+  const root = process.env.CUBRID_PROBE_DIR;
+  async function notifications(id, needle) {
+    await vscode.commands.executeCommand('notifications.showList');
+    fs.writeFileSync(path.join(root, 'notification-request.json'), JSON.stringify({id, needle}));
+    return waitFor(() => {
+      const file = path.join(root, `notifications-${id}.json`);
+      return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : undefined;
+    }, `notification ${id}`);
+  }
+  async function warning(id, needle) {
+    const rows = await notifications(id, needle);
+    const row = rows.find(value => value.text.includes(needle));
+    assert.ok(row, `${id}: missing notification`);
+    assert.equal(row.severity, 'warning', `${id}: expected warning notification`);
+    assert.ok(row.text.includes(guide), `${id}: missing installation URL`);
+    assert.match(row.text, /install/i);
+    checks[id] = row;
+    return rows;
+  }
+  await warning('missing-server', 'absent-server');
+  await vscode.commands.executeCommand('cubrid.restart');
+  await sleep(500);
+  const missingRepeated = await notifications('server-deduplicated', 'absent-server');
+  assert.equal(missingRepeated.filter(value => value.text.includes('absent-server')).length, 1, 'missing server warning repeated on restart');
+  await set('serverPath', process.env.CUBRID_SERVER);
+  await vscode.commands.executeCommand('cubrid.restart');
+  checks.recovered = (await completions(csql, 1, 3, 'SELECT')).label;
+  await warning('native-absent', 'Strict diagnostics are unavailable');
+  checks.missingRuntime = await diagnostics(csql, ['CUBRID-T1001']);
+  await document('second.csql', 'SELECT 1;\n');
+  await set('schemaMode', 'disabled');
+  await vscode.commands.executeCommand('cubrid.restart');
+  await completions(csql, 1, 3, 'SELECT');
+  const repeated = await notifications('deduplicated', 'Strict diagnostics are unavailable');
+  assert.equal(repeated.filter(value => value.text.includes('Strict diagnostics are unavailable')).length, 1, 'native warning repeated after document/settings/restart');
+  checks.duplicateCount = 1;
+  await set('parserWorker', path.join(root, 'absent-worker'));
+  await set('runtimePrefix', process.env.CUBRID_RUNTIME);
+  await warning('missing-worker', 'absent-worker');
+  checks.completionWithMissingWorker = (await completions(csql, 1, 3, 'SELECT')).label;
+  const nonExecutable = path.join(root, 'non-executable');
+  fs.writeFileSync(nonExecutable, 'unavailable\n', {mode:0o600});
+  await set('parserWorker', nonExecutable);
+  await warning('worker-permission', 'non-executable');
+  await set('parserWorker', process.env.CUBRID_WORKER);
+  await set('workerManifest', path.join(root, 'absent-manifest.json'));
+  await warning('missing-manifest', 'absent-manifest.json');
+  await set('workerManifest', '');
+  await set('runtimePrefix', path.join(root, 'absent-runtime'));
+  await warning('missing-runtime', 'absent-runtime');
+  await set('runtimePrefix', process.env.CUBRID_RUNTIME);
+  await sleep(700);
+  const healthy = await document('native-available.csql', 'CREATE SERIAL s START WITH ;\n');
+  checks.availableNative = await diagnostics(healthy, ['CUBRID-S1001']);
+  checks.availableCompletion = (await completions(csql, 1, 3, 'SELECT')).label;
+  await set('serverPath', nonExecutable);
+  await warning('server-permission', 'Configured server: ' + nonExecutable);
+  await set('serverPath', process.env.CUBRID_SERVER);
+  await vscode.commands.executeCommand('cubrid.restart');
+  checks.finalRecovery = (await completions(csql, 1, 3, 'SELECT')).label;
+  checks.children = children();
+  assert.equal(checks.children.length, 1, 'expected one server after binary recovery');
+};

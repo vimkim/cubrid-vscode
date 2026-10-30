@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ChildProcess, spawn } from 'node:child_process';
 import { CloseAction, ErrorAction, LanguageClient, LanguageClientOptions, ServerOptions, State as ClientState } from 'vscode-languageclient/node';
 import { parseSettings, Settings, wireSettings } from './settings';
+import { missingServerWarning, nativePrerequisiteWarning, unavailableExecutable } from './prerequisites';
 
 const keys = ['serverPath', 'parserWorker', 'runtimePrefix', 'workerManifest', 'workerTimeout', 'profile', 'scriptMode', 'configPath', 'schemaMode', 'schemaPath'];
 function readSettings(): Settings {
@@ -31,6 +32,7 @@ class Session {
   private state:State = {kind:'idle'};
   private desired:Settings | undefined;
   private changed: (() => void)[] = [];
+  private readonly warnings = new Map<'server' | 'native', string>();
   private readonly output = vscode.window.createOutputChannel('CUBRID');
   private fallback = this.registerReloadFallback();
   private registerReloadFallback(): vscode.Disposable {
@@ -40,6 +42,13 @@ class Session {
     const message = error instanceof Error ? error.message : String(error);
     this.output.appendLine(message);
     void vscode.window.showErrorMessage(`CUBRID: ${message}`);
+  }
+  private warn(kind: 'server' | 'native', message: string | undefined): void {
+    if (!message) { this.warnings.delete(kind); return; }
+    if (this.warnings.get(kind) === message) return;
+    this.warnings.set(kind, message);
+    this.output.appendLine(`WARN: ${message}`);
+    void vscode.window.showWarningMessage(`CUBRID: ${message}`);
   }
   private signal(): void { for (const resolve of this.changed.splice(0)) resolve(); }
   private setState(state:State): void { this.state = state; this.signal(); }
@@ -67,7 +76,7 @@ class Session {
     return Promise.resolve();
   }
   restart(): Promise<void> {
-    if (this.state.kind === 'disposed' || this.state.kind === 'blocked' || (this.state.kind === 'stopping' && this.state.next === 'disposed')) return Promise.resolve();
+    if (this.state.kind === 'disposed' || this.state.kind === 'blocked' || (this.state.kind === 'stopping' && this.state.next === 'disposed') || !vscode.workspace.isTrusted) return Promise.resolve();
     try { this.desired = readSettings(); } catch (error) { this.report(error); }
     const state = this.state;
     if (state.kind === 'starting' || state.kind === 'running') this.retire(state.attempt, 'idle');
@@ -84,14 +93,8 @@ class Session {
     let attempt:Attempt;
     const server:ServerOptions = async () => {
       if (this.state.kind !== 'starting' || this.state.attempt !== attempt) throw new Error('Startup was cancelled');
-      const child = spawn(settings.server, [], {stdio:'pipe'});
-      const exited = new Promise<void>(resolve => {
-        child.once('exit', () => { attempt.child = {kind:'exited', process:child}; resolve(); });
-        child.once('error', () => { if (!child.pid) { attempt.child = {kind:'exited', process:child}; resolve(); } });
-      });
-      attempt.child = {kind:'spawned', process:child, exited};
-      await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
-      return child;
+      if (attempt.child.kind !== 'spawned') throw new Error('Language server exited before initialization');
+      return attempt.child.process;
     };
     const options:LanguageClientOptions = {
       documentSelector: [{language:'cubrid', scheme:'file'}, {language:'cubrid', scheme:'untitled'}],
@@ -118,21 +121,35 @@ class Session {
         this.retire(attempt, 'failed');
       }
     });
-    attempt.started = client.start().then(async () => {
+    attempt.started = (async () => {
+      const child = spawn(settings.server, [], {stdio:'pipe'});
+      const exited = new Promise<void>(resolve => {
+        child.once('exit', () => { attempt.child = {kind:'exited', process:child}; resolve(); });
+        child.once('error', () => { if (!child.pid) { attempt.child = {kind:'exited', process:child}; resolve(); } });
+      });
+      attempt.child = {kind:'spawned', process:child, exited};
+      await new Promise<void>((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
+      if (this.state.kind !== 'starting' || this.state.attempt !== attempt) return;
+      this.warn('server', undefined);
+      await client.start();
       if (this.state.kind !== 'starting' || this.state.attempt !== attempt) return;
       if (client.state !== ClientState.Running) throw new Error('Language server stopped during initialization');
       clearTimeout(attempt.deadline);
       this.setState({kind:'running', attempt});
       await this.update(attempt);
-    }).catch(error => {
+    })().catch(error => {
       if (this.state.kind !== 'starting' || this.state.attempt !== attempt) return;
-      this.report(new Error(`Cannot start language server ${settings.server}: ${error instanceof Error ? error.message : String(error)}`));
+      if (unavailableExecutable(error)) this.warn('server', missingServerWarning(settings.server));
+      else this.report(new Error(`Cannot start language server ${settings.server}: ${error instanceof Error ? error.message : String(error)}`));
       this.retire(attempt, 'failed');
     });
   }
   private async update(attempt:Attempt): Promise<void> {
     const settings = this.desired;
     if (!settings || this.state.kind !== 'running' || this.state.attempt !== attempt) return;
+    void nativePrerequisiteWarning(settings.native).then(message => {
+      if (this.desired === settings && vscode.workspace.isTrusted && this.state.kind === 'running' && this.state.attempt === attempt) this.warn('native', message);
+    });
     try { await attempt.client.sendNotification('workspace/didChangeConfiguration', {settings:{cubrid:wireSettings(settings)}}); }
     catch (error) { if (this.state.kind === 'running' && this.state.attempt === attempt) this.report(error); }
   }

@@ -34,6 +34,8 @@ If the manifest is not beside the worker as `manifest.json`, set `cubrid.workerM
 
 The native pair is not needed for keyword completion. Without it, diagnostics report the missing runtime. Use trusted installations for these paths. Workspace settings cannot select executables, and the server starts only in trusted workspaces.
 
+In a trusted workspace, missing or non-executable server and parser-worker binaries show a warning with the [installation guide](https://github.com/vimkim/cubrid-language-tools/blob/main/docs/install.en.md). Missing native configuration, runtime directories, and manifests also show a warning. Strict diagnostics are unavailable until you correct the native inputs, while keyword completion continues. Details appear in the **CUBRID** output channel. Correct the trusted user or remote-machine settings, then run **CUBRID: Restart Language Server**. Reopening documents or changing schema settings does not repeat the same warning. The extension does not install components or open a browser automatically.
+
 Generic `.sql` files keep their existing language. To opt in, add `"files.associations": {"*.sql": "cubrid"}` to user settings.
 
 ## Completion and syntax coverage

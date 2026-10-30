@@ -12,7 +12,7 @@ async function waitFor(fn, label) {
   throw new Error(`Timed out: ${label}`);
 }
 function processes() {
-  return execFileSync('ps', ['-eo', 'pid=,ppid=,args='], {encoding:'utf8'}).trim().split('\n').map(line => { const match = line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/); return match ? {pid:Number(match[1]), parent:Number(match[2]), command:match[3]} : null; }).filter(Boolean);
+  return execFileSync('ps', ['-ww', '-eo', 'pid=,ppid=,args='], {encoding:'utf8'}).trim().split('\n').map(line => { const match = line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/); return match ? {pid:Number(match[1]), parent:Number(match[2]), command:match[3]} : null; }).filter(Boolean);
 }
 function children() { return processes().filter(entry => entry.parent === process.pid && entry.command.includes(process.env.CUBRID_SERVER)); }
 function descendants(pid) {
@@ -53,13 +53,19 @@ async function run() {
     result.trusted = true;
     result.folders = vscode.workspace.workspaceFolders.map(folder => folder.uri.fsPath);
   }
-  if (process.env.CUBRID_BASELINE !== '1') await set('serverPath', process.env.CUBRID_CASE === 'missing' ? path.join(root, 'absent-server') : process.env.CUBRID_SERVER);
+  if (process.env.CUBRID_BASELINE !== '1') await set('serverPath', ['missing', 'binary-warnings'].includes(process.env.CUBRID_CASE) ? path.join(root, 'absent-server') : process.env.CUBRID_SERVER);
   const csql = await document('test.csql', '-- 가😀\r\nSELsuffix\r\nSELECT 1;\r\n');
   const sql = await document('test.sql', 'select 1;\n');
   result.checks.language = {csql:csql.languageId, sql:sql.languageId};
   await vscode.window.showTextDocument(csql);
   if (process.env.CUBRID_BASELINE === '1' && process.env.CUBRID_CASE !== 'show-hint') { assert.equal(csql.languageId, 'plaintext'); assert.equal(sql.languageId, 'sql'); return; }
   assert.equal(csql.languageId, 'cubrid'); assert.equal(sql.languageId, 'sql');
+  if (process.env.CUBRID_CASE === 'binary-warnings') {
+    await waitFor(() => vscode.workspace.isTrusted, 'trusted workspace');
+    result.checks.binaryWarnings = {};
+    await require('./binary-warnings').run({checks:result.checks.binaryWarnings, csql, document, completions, diagnostics, set, waitFor, children});
+    return;
+  }
   if (process.env.CUBRID_CASE === 'show-hint') {
     await waitFor(() => vscode.workspace.isTrusted, 'trusted workspace');
     result.trusted = vscode.workspace.isTrusted;
@@ -130,13 +136,18 @@ async function run() {
       result.checks.launches = launches;
     }
     const live = processes().filter(entry => entry.parent === process.pid && (entry.command.includes(process.env.CUBRID_SERVER) || entry.command.includes(process.env.CUBRID_REAL_SERVER)));
+    result.checks.hostPid = process.pid;
+    result.checks.ownedProcesses = processes().filter(entry => entry.parent === process.pid || (result.checks.launches || []).some(launch => launch.pid === entry.pid));
     result.checks.children = live;
     assert.equal(live.length, 1, 'expected one server process');
     return;
   }
   if (process.env.CUBRID_CASE === 'untrusted') {
     assert.equal(vscode.workspace.isTrusted, false);
+    await set('serverPath', 'relative-untrusted-server');
+    await vscode.commands.executeCommand('cubrid.restart');
     await sleep(2000);
+    await vscode.commands.executeCommand('notifications.showList');
     result.checks.untrustedChildren = children();
     assert.equal(result.checks.untrustedChildren.length, 0);
     return;

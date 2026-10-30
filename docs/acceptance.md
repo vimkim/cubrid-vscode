@@ -1,5 +1,38 @@
 # Editor alpha acceptance
 
+## Binary prerequisite warnings, V631, 2026-10-30
+
+Ticket V631 starts from `053d42b806abcf8244fc34796757daed39e33590` in the isolated `fix/missing-binary-warnings` worktree. Its read-only core input is `ad9d9434f6f8d74b8c44d9cadba0faf2362e6606`, installed with the optional LSP dependencies into a disposable virtual environment. No user editor profile or native input was changed.
+
+Missing or non-executable language servers now produce a warning that starts with "Install cubrid-language-server". The warning includes the configured path, the GitHub installation guide, `cubrid.serverPath`, and Restart guidance. Missing native configuration, worker executables, runtime directories, and manifests produce advisory warnings in the notification UI and `CUBRID` output. These warnings state that strict diagnostics are unavailable and keyword completion can continue. Repeated document opens, schema changes, and Restart do not repeat an unchanged warning. Corrected settings recover without an automatic retry loop. Other startup, protocol, runtime, and malformed-setting failures retain their existing error handling.
+
+The evidence directory is `/home/vimkim/temp/cubrid-vscode-warnings-8311jC`. `failing-before/result.json` records the installed baseline failing the new public UI check because a missing server produced an error notification without installation guidance. `notifications-missing-server.json` and its screenshot record the actual notification. The final installed VSIX passed these cases:
+
+| Receipt directory | Observed behavior |
+| --- | --- |
+| `accepted-warnings` | Warning severity and installation URL for missing server, absent native configuration, missing worker, non-executable worker, missing manifest, missing runtime, and non-executable server. Completion continues through native failures. Document, schema, and Restart changes suppress duplicates. Corrected native inputs produce a real `CUBRID-S1001` syntax diagnostic. Server recovery leaves exactly one server. |
+| `startup-rapid-wide` | Rapid settings and Restart changes retain the latest native pair and profile, return completion and native diagnostics, retire the old child before one successor launches, and leave one owned server. |
+| `startup-timeout-race-wide` | Correcting the path during termination of a timed-out initializer starts one successor after the old child exits. Completion and missing-native diagnostics recover. |
+| `startup-dispose` | Disposal during initialization observes the owned child exit. |
+| `untrusted` | An invalid trusted server setting and explicit Restart launch no child and show no CUBRID notification before workspace trust. |
+
+The real host is OpenVSCode Server 1.109.5 with Node v22.21.1 and headless Chromium 151.0.7922.34 on Linux. The warning test uses browser notification DOM severity and text, screenshots, real editor completion and diagnostic APIs, and the real CUBRID output log. It does not replace the editor's warning API. `warning-output.json` authenticates seven warning lines with installation and Restart guidance. The startup process receipts include parent PIDs and full commands. Earlier startup probes exposed command truncation in `ps`; `ps -ww` preserves the existing one-child assertion. `process-check.json` records observed owned PIDs absent after host shutdown.
+
+`npm test` passes all 15 checks. `npm audit --omit=dev` reports zero vulnerabilities. `npm run package` produces a 326-file VSIX. `vsix-inventory.json` verifies compiled extension/settings/prerequisite code and bilingual README bytes against the package, and excludes source, tests, and evidence. The copied artifact is `cubrid-language-0.1.0.vsix`, SHA-256 `d7b0b915b2bb3cd8e625cfd42e3704061f7d3fde3f5e27441d83d52589d9676c`. The build uses Node v25.8.0 and TypeScript 5.9.3. Packaging retains the existing missing-repository and unbundled-file warnings.
+
+To rerun the warning case from this checkout, use a new disposable output path:
+
+```sh
+source /home/vimkim/temp/cubrid-vscode-warnings-8311jC/env.sh
+export CUBRID_CASE=binary-warnings
+export CUBRID_PROBE_DIR=/absolute/new/disposable-output
+test/host/run.sh
+```
+
+For the startup cases, set `CUBRID_REAL_SERVER` to the disposable installed server, `CUBRID_SERVER` to `$PWD/test/host/unresponsive-server.py`, and `CUBRID_RECOVERY_SERVER` to `$PWD/test/host/recovery-server.py`. Set `CUBRID_CASE` to `startup-rapid`, `startup-timeout-race`, or `startup-dispose`. Each run requires a fresh output directory. The worker input is `/home/vimkim/temp/cubrid-followup-execution-6_7fcyif/native/qualified-build/parser-worker`, with its adjacent v4 manifest and runtime `/home/vimkim/.cub/install/develop/debug`.
+
+This ticket does not rerun Microsoft desktop, Windows, macOS, minimum-version, or full alpha qualification. Native filesystem checks establish availability only; the core still owns manifest identity, runtime integrity, and syntax qualification. Partial native pairs remain invalid settings and retain the last valid configuration. No downloads, automatic installation, database tools, browser launch, profile installation, integration, push, or publication occurred. The historical downloadable alpha is unchanged.
+
 ## Current status, 2026-10-30
 
 The current source baseline is extension commit `521fde16e511419322e380d26707eb360a257506`, paired locally with core commit `057e41b0c02d85d09905301f6bfccbb7ed0b8965`. The core includes the initialize conversion fix discussed in the historical record below. Install the core and its optional LSP dependencies separately using the [installation guide](https://github.com/vimkim/cubrid-language-tools/blob/main/docs/install.en.md).
