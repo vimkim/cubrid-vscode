@@ -1,6 +1,6 @@
 # CUBRID Language for VS Code
 
-[한국어](README.md) | **English**
+[한국어](https://github.com/vimkim/cubrid-vscode/blob/main/README.md) | **English**
 
 This extension provides lexical highlighting, indentation, completion, and syntax diagnostics for `.csql`. The separately installed CUBRID language server owns completion and diagnostics. The extension never executes SQL or connects to a database.
 
@@ -12,9 +12,9 @@ This extension provides lexical highlighting, indentation, completion, and synta
 
 The extension requires VS Code 1.109.0 or later. The downloadable alpha VSIX was tested on OpenVSCode Server 1.109.5 on Linux.
 
-The downloadable alpha asset remains unchanged. A build from current `main` is a separate artifact. See [current source and acceptance evidence](docs/acceptance.md#current-status-2026-10-30) for the tested extension and server commits.
+The downloadable alpha asset remains unchanged. A build from current `main` is a separate artifact. See [current source and acceptance evidence](https://github.com/vimkim/cubrid-vscode/blob/main/docs/acceptance.md#current-status-2026-10-30) for the tested extension and server commits.
 
-The [2026-10-30 hosted run](https://github.com/vimkim/cubrid-vscode/actions/runs/41010604044) passed package and Microsoft VS Code desktop 1.109.0 and stable jobs on Linux. The [workflow](.github/workflows/ci.yml) pins the older core `2a8842c`, with a trusted workspace and no native runtime. This run does not qualify v4 native coverage or SHOW and hint authoring on Microsoft desktop. The combined current-core SHOW and hint evidence uses OpenVSCode Server 1.109.5.
+The [2026-10-30 hosted run](https://github.com/vimkim/cubrid-vscode/actions/runs/41010604044) passed package and Microsoft VS Code desktop 1.109.0 and stable jobs on Linux. The [workflow](https://github.com/vimkim/cubrid-vscode/blob/main/.github/workflows/ci.yml) pins the older core `2a8842c`, with a trusted workspace and no native runtime. This run does not qualify v4 native coverage or SHOW and hint authoring on Microsoft desktop. The combined current-core SHOW and hint evidence uses OpenVSCode Server 1.109.5.
 
 The server, native worker, manifest, and runtime are installed separately. Neither the extension nor the Python wheel bundles the native assets.
 

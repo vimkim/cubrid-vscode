@@ -1,6 +1,6 @@
 # CUBRID Language for VS Code
 
-**한국어** | [English](README.en.md)
+**한국어** | [English](https://github.com/vimkim/cubrid-vscode/blob/main/README.en.md)
 
 이 확장은 `.csql` 파일에 CUBRID 구문 색상, 들여쓰기, 자동 완성 및 구문 진단을 제공합니다. 자동 완성과 진단은 별도로 설치한 CUBRID 언어 서버가 처리합니다. SQL을 실행하거나 데이터베이스에 연결하지 않습니다.
 
@@ -12,9 +12,9 @@
 
 이 확장은 VS Code 1.109.0 이상을 요구합니다. 다운로드할 알파 VSIX는 Linux의 OpenVSCode Server 1.109.5에서 테스트했습니다.
 
-다운로드할 알파 파일은 변경되지 않았습니다. 현재 `main`에서 만든 빌드는 별도 산출물입니다. 검증한 확장과 서버 커밋은 [현재 소스와 검증 근거](docs/acceptance.md#current-status-2026-10-30)를 참고하세요.
+다운로드할 알파 파일은 변경되지 않았습니다. 현재 `main`에서 만든 빌드는 별도 산출물입니다. 검증한 확장과 서버 커밋은 [현재 소스와 검증 근거](https://github.com/vimkim/cubrid-vscode/blob/main/docs/acceptance.md#current-status-2026-10-30)를 참고하세요.
 
-[2026-10-30 호스팅 실행](https://github.com/vimkim/cubrid-vscode/actions/runs/41010604044)은 Linux에서 패키지 작업과 Microsoft VS Code 데스크톱 1.109.0 및 stable 작업을 통과했습니다. [워크플로](.github/workflows/ci.yml)는 이전 코어 `2a8842c`를 고정하며, 네이티브 런타임 없이 신뢰하는 작업 영역을 사용합니다. 이 실행은 Microsoft 데스크톱의 v4 네이티브 범위나 SHOW 및 힌트 작성 지원을 검증하지 않습니다. 현재 코어를 결합한 SHOW 및 힌트 검증은 OpenVSCode Server 1.109.5에서 수행했습니다.
+[2026-10-30 호스팅 실행](https://github.com/vimkim/cubrid-vscode/actions/runs/41010604044)은 Linux에서 패키지 작업과 Microsoft VS Code 데스크톱 1.109.0 및 stable 작업을 통과했습니다. [워크플로](https://github.com/vimkim/cubrid-vscode/blob/main/.github/workflows/ci.yml)는 이전 코어 `2a8842c`를 고정하며, 네이티브 런타임 없이 신뢰하는 작업 영역을 사용합니다. 이 실행은 Microsoft 데스크톱의 v4 네이티브 범위나 SHOW 및 힌트 작성 지원을 검증하지 않습니다. 현재 코어를 결합한 SHOW 및 힌트 검증은 OpenVSCode Server 1.109.5에서 수행했습니다.
 
 서버, 네이티브 워커, 매니페스트와 런타임은 별도로 설치합니다. 확장과 Python wheel 모두 네이티브 자산을 포함하지 않습니다.
 
