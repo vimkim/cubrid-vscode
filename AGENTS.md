@@ -14,4 +14,4 @@ This is a remote Linux host. Never launch desktop GUI programs or forwarded X11.
 Keep dependency/build/test outputs narrowly ignored. Preserve unrelated changes.
 Commit meaningful task changes before review. Write exact acceptance evidence and limitations in `docs/acceptance.md`.
 Local commits are authorized. Request approval before rebasing and integrating into `main`.
-The local repository has no configured remote. Remote creation, pushes, marketplace publication, and deployment require separate authorization.
+Inspect live remotes before publication. Remote creation, pushes, marketplace publication, and deployment require separate authorization.

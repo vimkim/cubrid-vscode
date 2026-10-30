@@ -1,5 +1,7 @@
 # VS Code editor alpha
 
+> Historical editor-alpha specification. The baselines, paths, and acceptance statements below describe the original task. For current installation, use the [README](../README.en.md). For later core integration, hosted desktop results, and combined-core evidence, read [current status](acceptance.md#current-status-2026-10-30).
+
 Build a locally installable VSIX that uses the existing CUBRID stdio server.
 Engine baseline is `3bb70e492efe7bcb7de58a801281f7a088a9c39e` in `/home/vimkim/gh/cubrid-language-tools`.
 The canonical task acceptance is `/home/vimkim/gh/cubrid-language-tools-editor-alpha/docs/tickets/editor-alpha-contract.md`.

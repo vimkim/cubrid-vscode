@@ -1,5 +1,7 @@
 # SHOW and hint host acceptance evidence
 
+> This receipt retains its original core and worker identities. The later v4 combined-core run is recorded in [current status](../../acceptance.md#current-status-2026-10-30).
+
 The extension baseline is `afd459b7eb9a9a42164f0aa9ed191967c56a6e95`. The topic branch is `followup/show-hint-acceptance`. The shared engine input is clean main commit `49479b2d0a6cf39f71498834215346d8381b82c5`. No production source or engine file changed. The worktree had no unrelated changes at dispatch.
 
 Evidence is under `/home/vimkim/temp/cubrid-followup-execution-6_7fcyif/vscode`. The `baseline` run omitted the extension and failed because `.csql` remained `plaintext`. This is an installation control, not a pre-fix product regression. The first installed run timed out at an exclusion check that incorrectly expected unsupported status for a supported document. `run2` corrected that fixture. The final run adds two warning categories and checks workspace trust before recording the result.

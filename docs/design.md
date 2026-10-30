@@ -1,5 +1,7 @@
 # Editor alpha client design
 
+> Historical editor-alpha design. The baselines, paths, and acceptance statements below describe the original task. For current installation, use the [README](../README.en.md). For later core integration, hosted desktop results, and combined-core evidence, read [current status](acceptance.md#current-status-2026-10-30).
+
 ## Problem and usage
 
 Users install a separate editor consumer and supply the existing shared language server. They open `.csql` files, accept completion edits, read syntax diagnostics, and explicitly refresh offline schema metadata. Generic `.sql` remains opt-in through editor file associations. The consumer implements no completion or parser engine.

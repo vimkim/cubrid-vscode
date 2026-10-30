@@ -1,5 +1,7 @@
 # Verify retirement by its postconditions
 
+> Historical startup-recovery work. The [acceptance record](acceptance.md#startup-retirement-repair) records the completed repair. See [current status](acceptance.md#current-status-2026-10-30) for later source and host evidence.
+
 Work item 582, continuation of `docs/startup-recovery-ticket.md`.
 Previous checkpoint `9b69573271b52ac08adadf922f66fdcf39515edb` contains the real installed-host red regression and no product lifecycle repair.
 

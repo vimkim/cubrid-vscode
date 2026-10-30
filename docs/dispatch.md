@@ -1,5 +1,7 @@
 # VS Code editor alpha dispatch
 
+> Historical editor-alpha dispatch. The baselines, paths, and acceptance statements below describe the original task. For current installation, use the [README](../README.en.md). For later core integration, hosted desktop results, and combined-core evidence, read [current status](acceptance.md#current-status-2026-10-30).
+
 Read AGENTS.md, docs/spec.md, docs/design.md, /home/vimkim/my-cubrid/CUBRID.md, and the central engine contracts before edits.
 This design snapshot comes from central coordinator commit 9464411dca58562519bd47b37e8d91b86db4df3f.
 The canonical acceptance contract is /home/vimkim/gh/cubrid-language-tools-editor-alpha/docs/tickets/editor-alpha-contract.md.

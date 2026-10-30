@@ -1,5 +1,26 @@
 # Editor alpha acceptance
 
+## Current status, 2026-10-30
+
+The current source baseline is extension commit `521fde16e511419322e380d26707eb360a257506`, paired locally with core commit `057e41b0c02d85d09905301f6bfccbb7ed0b8965`. The core includes the initialize conversion fix discussed in the historical record below. Install the core and its optional LSP dependencies separately using the [installation guide](https://github.com/vimkim/cubrid-language-tools/blob/main/docs/install.en.md).
+
+The downloadable `v0.1.0-alpha.1` VSIX is unchanged. Its receipt does not qualify a new build from `main`. The evidence below distinguishes two source-build checks:
+
+| Check | Inputs and result | Limits |
+| --- | --- | --- |
+| Hosted Microsoft desktop | [Run 41010604044](https://github.com/vimkim/cubrid-vscode/actions/runs/41010604044) passed package, desktop 1.109.0, and stable jobs for extension `521fde1`. The workflow pins core `2a8842c45c4fb219e322afd731c27937a107324f`. | Trusted Linux workspace without native inputs. This does not qualify v4 native syntax or SHOW and hint authoring on Microsoft desktop. |
+| Combined-core OpenVSCode | Extension `521fde1`, core `057e41b`, and a copied v4 worker passed the SHOW and hint case on OpenVSCode Server 1.109.5, Node 22.21.1, and Chromium 151.0.7922.34. | Focused completion and warning checks in an isolated trusted Linux workspace. This is not a desktop or full alpha-suite rerun. |
+
+The combined evidence is under `/home/vimkim/temp/cubrid-followup-execution-6_7fcyif/combined`. `host/result.json` records successful SHOW and hint insertion with original UTF-16 ranges and saved CRLF text, warning updates, profile suppression, comment and string exclusions, and retained native unsupported and missing-runtime diagnostics. `installed-checks.json` records 19 source and installed Python file hashes, wheel SHA-256 `2c1168ec868fbf8e383f01b9e700608810dc8b8a0d949e5d6d3de7517661223b`, worker SHA-256 `c2b89a8f7d539934f0b68cf2af66199d3889baa541859d30809cca9c91ccabd3`, and manifest SHA-256 `c93879150d6ecb4a62414876f097b029e2bec06725292bbe6673133c46bb7efc`. The hosted summary is `integration-20261030/vscode-ci.json` beside that directory.
+
+The core's native revision is `bounded-query-dml-schema-engineer-ordered-v4` for profile `cubrid-11.5.0.2704-cc94778` on Linux x86-64. Current core and native inputs must match. Existing installations are not upgraded by these tests or by installing a new extension. The package version `0.1.0.dev0` alone does not establish the core commit or native revision.
+
+SHOW and hint completion and conservative authoring warnings cover more forms than native validity. Native SHOW remains exactly `SHOW TRACE`. The v4 addition admits one argument-free block `ORDERED` immediately after a top-level literal `SELECT`, with no FROM, joins, or other hints in that form. The core [coverage reference](https://github.com/vimkim/cubrid-language-tools/blob/main/docs/coverage.en.md) owns the exact grammar and qualification limits. The older eight-environment distribution matrix was not rerun for v4.
+
+## Historical alpha baseline
+
+The remaining sections retain their original receipts and reproduction inputs. Statements about untested desktop versions, provisional core integration, and local publication scope apply at their recorded stage. Use the dated status above for the later evidence.
+
 The consumer dispatch started at `6c7c6edefe66d1cc9f03af838b5e7f738abfc451`. The original shared server baseline is `3bb70e492efe7bcb7de58a801281f7a088a9c39e`. That baseline rejected the editor's standard initialize request because its strict converter rejected LSP enum values. The failing installed-host run is `vscode/second/result.json` and the request is `vscode/wire-in` under `/home/vimkim/temp/cubrid-editor-alpha-aiYISe`.
 
 The passing runs use the provisional shared-core fix at `d5a571eb03d543af1438b85933fcad3aed60f9f0`, from `/home/vimkim/temp/cubrid-lsp-enums-venv/bin/cubrid-language-server`. The candidate checkout later advanced to `3efe03b49a037041fe6e667acb990fc8403c3ab0` with a report-only change. The editor requires this core fix. The original baseline does not work with this extension. Integration of the core fix remains separate.

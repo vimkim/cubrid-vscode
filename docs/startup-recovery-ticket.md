@@ -1,5 +1,7 @@
 # Recover from an unresponsive language-server initialize
 
+> Historical startup-recovery work. The [acceptance record](acceptance.md#startup-retirement-repair) records the completed repair. See [current status](acceptance.md#current-status-2026-10-30) for later source and host evidence.
+
 Work item 582 follow-up. Consumer baseline is `fcf74ec38c62be865876b6e9c8fa9febffda1abb`.
 Independent installed-VSIX review proved one P2 defect in the otherwise passing alpha.
 Evidence and runnable repro are `/home/vimkim/temp/cubrid-editor-alpha-aiYISe/vscode-independent/report.md` and `run-hang.sh`.
