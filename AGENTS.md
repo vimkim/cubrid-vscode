@@ -13,5 +13,5 @@ Use one fresh-context implementer and isolated worktree per bounded ticket. Use 
 This is a remote Linux host. Never launch desktop GUI programs or forwarded X11. Use headless browser/server automation.
 Keep dependency/build/test outputs narrowly ignored. Preserve unrelated changes.
 Commit meaningful task changes before review. Write exact acceptance evidence and limitations in `docs/acceptance.md`.
-Local commits are authorized. Request approval before rebasing and integrating into `main`.
-Inspect live remotes before publication. Remote creation, pushes, marketplace publication, and deployment require separate authorization.
+This is a Tier 1 personal repository: local commits, rebase onto a clean destination (`main`), `git merge --ff-only`, pushing the merged destination branch to its configured remote, and task worktree/branch cleanup are authorized once checks pass.
+Pushing unmerged/other branches, remote creation, marketplace publication, and deployment still require separate authorization.
